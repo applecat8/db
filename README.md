@@ -13,3 +13,8 @@
 
 ![SQLite 架构](https://cstack.github.io/db_tutorial/assets/images/arch2.gif)
 
+## Pare 3 - 一个内存中的、仅有应用的、单表的数据库
+
+[原文part-3](https://cstack.github.io/db_tutorial/parts/part3.html)
+
+实现了在内存的数据存储，以及列出数据
