@@ -27,6 +27,8 @@ typedef enum {
     PREPARE_SUCCESS,
     PREPARE_UNRECOGNIZED_STATEMENT,
     PREPARE_SYNTAX_ERROR,
+    PREPARE_STRING_TOO_LONG,
+    PREPARE_NEGATIVE_ID,
 }PreapareResult;
 
 typedef enum {
@@ -42,8 +44,8 @@ typedef struct {
 
 typedef struct{
     uint32_t id;
-    char username[COLUMN_USERNAME_SIZE];
-    char email[COLUMN_EMAIL_SIZE];
+    char username[COLUMN_USERNAME_SIZE + 1];
+    char email[COLUMN_EMAIL_SIZE + 1];
 } Row;
 
 typedef struct{
@@ -69,6 +71,7 @@ void deserialize_row( void* source, Row *destination);
 void* row_slot(Table *table, uint32_t row_num);
 void print_row(Row *row);
 void free_table(Table *table);
+PreapareResult preapare_insert(InputBuffer *input_buffer, Statement *statement);
 
 ExecuteResult execute_insert(Statement statement, Table *table);
 ExecuteResult execute_select(Statement statement, Table *table);
@@ -107,6 +110,12 @@ int main(int agc, char* argv[]){
         switch (preapare_statement(input_buffer, &statement)) {
             case PREPARE_SUCCESS:
                 break;
+            case PREPARE_STRING_TOO_LONG:
+                printf("String is too long.\n");
+                continue;
+            case PREPARE_NEGATIVE_ID:
+                printf("ID must be positive.\n");
+                continue;
             case PREPARE_UNRECOGNIZED_STATEMENT:
                 printf("Unrecognized command '%s'\n", input_buffer->buffer);
                 continue;
@@ -183,19 +192,43 @@ do_mate_command(InputBuffer *input_buffer){
 PreapareResult
 preapare_statement(InputBuffer *input_buffer, Statement *statement){
     if (!strncmp(input_buffer->buffer, "insert", 6)) {
-        int args_assigned = sscanf(input_buffer->buffer,"insert %d %s %s", &(statement->row_to_insert.id), statement->row_to_insert.username, statement->row_to_insert.email);
-
-        if (args_assigned < 3) { // 参数不够
-            return PREPARE_SYNTAX_ERROR;
-        }
-        statement->type = INSERT;
-        return PREPARE_SUCCESS;
+        return preapare_insert(input_buffer, statement);
     }else if (!strcmp(input_buffer->buffer, "select")) {
         statement->type = SELECT;
         return PREPARE_SUCCESS;
     }
 
     return PREPARE_UNRECOGNIZED_STATEMENT;
+}
+
+PreapareResult
+preapare_insert(InputBuffer *input_buffer, Statement *statement){
+    statement->type = INSERT;
+
+    char *keyword = strtok(input_buffer->buffer, " ");
+    char *id_str = strtok(NULL, " ");
+    char *username= strtok(NULL, " ");
+    char *email = strtok(NULL, " ");
+
+    // 判断是否都存在
+    if (!(id_str && username && email)) {
+        return PREPARE_SYNTAX_ERROR;
+    }
+
+    int id = atoi(id_str);
+    if (id < 0) {
+        return PREPARE_NEGATIVE_ID;
+    }
+    // 长度是否满足
+    if (strlen(username) > COLUMN_USERNAME_SIZE || strlen(email) > COLUMN_EMAIL_SIZE) {
+        return PREPARE_STRING_TOO_LONG;
+    }
+
+    statement->row_to_insert.id = id;
+    strcpy(statement->row_to_insert.username, username);
+    strcpy(statement->row_to_insert.email, email);
+    
+    return PREPARE_SUCCESS;
 }
 
 ExecuteResult
@@ -262,6 +295,7 @@ row_slot(Table *table, uint32_t row_num){
     return page + byte_offset;
 }
 
+// 新建表
 Table*
 new_table(){
     Table* table = malloc(sizeof(Table));
@@ -272,6 +306,7 @@ new_table(){
     return table;
 }
 
+// 释放表
 void
 free_table(Table *table){
     for (int i=0; table->pages[i]; i++) {
