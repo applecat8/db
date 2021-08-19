@@ -18,3 +18,11 @@
 [原文part-3](https://cstack.github.io/db_tutorial/parts/part3.html)
 
 实现了在内存的数据存储，以及列出数据
+
+## Pare 4 - 测试程序和一些bug(边界条件)
+
+[原文part-4](https://cstack.github.io/db_tutorial/parts/part4.html)
+
+测试程序我使用的是js
+
+## Pare 5 - 数据持久化
