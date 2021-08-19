@@ -67,6 +67,13 @@ typedef struct {
     Pager *pager;
 } Table;
 
+// 一个Cursor对象，它代表了表中的一个位置
+typedef struct {
+    Table *table;
+    uint32_t row_num;
+    bool end_of_table; // 表示超过最后一个元素的一个位置
+} Cursor;
+
 
 InputBuffer* new_input_buffer();
 void print_prompt();
@@ -77,7 +84,7 @@ PreapareResult preapare_statement(InputBuffer *input_buffer, Statement *statemen
 ExecuteResult execute_statement(Statement statement, Table *table);
 void serialize_row(Row *source, void *destination);
 void deserialize_row( void* source, Row *destination);
-void* row_slot(Table *table, uint32_t row_num);
+void* row_slot(Cursor *cursor);
 void print_row(Row *row);
 void free_table(Table *table);
 PreapareResult preapare_insert(InputBuffer *input_buffer, Statement *statement);
@@ -86,6 +93,9 @@ void* get_page(Pager *pager, uint32_t page_num);
 Table* db_open(const char *filename);
 void db_close(Table *table);
 void pager_flush(Pager *pager, uint32_t page_num, uint32_t size);
+Cursor* table_start(Table *table);
+Cursor* table_end(Table *table);
+void cursor_advance(Cursor *cursor);
 
 ExecuteResult execute_insert(Statement statement, Table *table);
 ExecuteResult execute_select(Statement statement, Table *table);
@@ -269,19 +279,27 @@ execute_insert(Statement statement, Table *table){
         return EXECUTE_TABLE_FLL;
     }
     Row *row_to_insert = &(statement.row_to_insert);
-    serialize_row(row_to_insert, row_slot(table, table->num_rows));
+    Cursor *cursor = table_end(table);
+    serialize_row(row_to_insert, row_slot(cursor));
     
     table->num_rows++;
+    free(cursor);
     return EXECUTE_SUCCESS;
 }
 
+// 使用游标来读取表，每循环一次游标推进1
 ExecuteResult
 execute_select(Statement statement, Table *table){
+    Cursor* cursor = table_start(table);
+
     Row row;
-    for (uint32_t i = 0; i < table->num_rows; i++) {
-        deserialize_row(row_slot(table, i), &row);
+    while (!(cursor->end_of_table)) {
+        deserialize_row(row_slot(cursor), &row);
         print_row(&row);
+        cursor_advance(cursor);
     }
+
+    free(cursor);
     return EXECUTE_SUCCESS;
 }
 
@@ -302,11 +320,12 @@ deserialize_row(void *source, Row *destination){
     memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
 }
 
-// 获得 row_num 在表中对应的地址
+// 获得 游标 在表中指向的地址
 void*
-row_slot(Table *table, uint32_t row_num){
+row_slot(Cursor *cursor){
+    uint32_t row_num = cursor->row_num;
     uint32_t page_num = row_num / ROWS_PER_PAGE;
-    void *page = get_page(table->pager, page_num);
+    void *page = get_page(cursor->table->pager, page_num);
 
     uint32_t row_offset = row_num % ROWS_PER_PAGE;
     uint32_t byte_offset = row_offset * ROW_SIZE;
@@ -448,4 +467,33 @@ pager_open(const char *filename){
         pager->pages[i] = NULL;
     }
     return pager;
+}
+
+Cursor*
+table_start(Table *table){
+    Cursor *cursor = malloc(sizeof(Cursor));
+    cursor->table = table;
+    cursor->row_num = 0;
+    cursor->end_of_table= (table->num_rows == 0);
+
+    return cursor;
+}
+
+Cursor*
+table_end(Table *table){
+    Cursor *cursor = malloc(sizeof(Cursor));
+    cursor->table= table;
+    cursor->row_num = table->num_rows;
+    cursor->end_of_table = true;
+
+    return cursor;
+}
+
+// 推进游标
+void
+cursor_advance(Cursor *cursor){
+    cursor->row_num++;
+    if (cursor->row_num >= cursor->table->num_rows) {
+        cursor->end_of_table = true;
+    }
 }
