@@ -27,12 +27,16 @@
 
 ## Pare 5 - 数据持久化
 
+[原文part-5](https://cstack.github.io/db_tutorial/parts/part5.html)
+
 ## Pare 6 - 添加一层抽象(游标)
 
-[原文part-5](https://cstack.github.io/db_tutorial/parts/part5.html)
+[原文part-6](https://cstack.github.io/db_tutorial/parts/part6.html)
 帮助我们更好的将数据结构重写为B-Tree
 
 ## Pare 7 B-Tree的介绍
+
+[原文part-7](https://cstack.github.io/db_tutorial/parts/part7.html)
 
 * 为什么说树是数据库的一个好的数据结构？
   * 搜索一个特定的值是快速的（对数时间）。
@@ -68,3 +72,21 @@ Stores values? | No | Yes
   * 每个内部节点最多两个键
   * 每个内部节点至少有2个孩子
   * 每个内部节点至少有1个键
+
+# Part - 8 B-Tree 叶子节点格式
+
+[原文part-8](https://cstack.github.io/db_tutorial/parts/part8.html)
+
+![Our leaf node format](https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png)
+
+我自己实习的时候每一个行数据
+
+```c
+typedef struct{
+    uint32_t id;
+    char username[COLUMN_USERNAME_SIZE + 1];
+    char email[COLUMN_EMAIL_SIZE + 1];
+} Row;
+```
+
+我没有将 username 和 email 的换行存入文件(持久化), 所以value 的大小 为 291
