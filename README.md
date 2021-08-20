@@ -73,13 +73,13 @@ Stores values? | No | Yes
   * 每个内部节点至少有2个孩子
   * 每个内部节点至少有1个键
 
-# Part - 8 B-Tree 叶子节点格式
+## Part - 8 B-Tree 叶子节点格式
 
 [原文part-8](https://cstack.github.io/db_tutorial/parts/part8.html)
 
 ![Our leaf node format](https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png)
 
-我自己实习的时候每一个行数据
+我自己实现的时候每一个行数据
 
 ```c
 typedef struct{
@@ -90,3 +90,9 @@ typedef struct{
 ```
 
 我没有将 username 和 email 的换行存入文件(持久化), 所以value 的大小 为 291
+
+## Part - 9 二分查找 和 重复键处理
+
+[原文part-8](https://cstack.github.io/db_tutorial/parts/part8.html)
+
+主要是将插入部分使用二分查找保证顺序

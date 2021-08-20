@@ -38,6 +38,7 @@ typedef enum {
 typedef enum {
     EXECUTE_SUCCESS,
     EXECUTE_TABLE_FLL,
+    EXECUTE_DUPLICATE_KEY,
 }ExecuteResult;
 
 typedef struct {
@@ -102,11 +103,16 @@ Table* db_open(const char *filename);
 void db_close(Table *table);
 void pager_flush(Pager *pager, uint32_t page_num);
 Cursor* table_start(Table *table);
-Cursor* table_end(Table *table);
+Cursor* table_find(Table *table, uint32_t key);
 void cursor_advance(Cursor *cursor);
 void* cursor_value(Cursor *cursor);
 ExecuteResult execute_insert(Statement statement, Table *table);
 ExecuteResult execute_select(Statement statement, Table *table);
+
+// 获得给定节点的类型
+NodeType get_node_type(void *node);
+// 设置给定节点的类型
+void set_node_type(void *node, NodeType type);
 // 根据叶节点的首地址，得到该节点的 num_cells 信息
 uint32_t* leaf_node_num_cells(void *node);
 // 得到 node节点的第 cell_num 个cell(键值信息) 的地址
@@ -119,6 +125,7 @@ uint32_t* leaf_node_value(void *node, uint32_t cell_num);
 void initialize_leaf_node(void *node);
 // 在当前游标下插入一条数据
 void leaf_node_insert(Cursor *cursor, uint32_t key, Row *value);
+Cursor* leaf_node_find(Table *table, uint32_t page_num, uint32_t key);
 // 打印当前的常量
 void print_constants();
 void print_leaf_node(void *node);

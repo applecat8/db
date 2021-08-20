@@ -1,4 +1,7 @@
 #include "repl.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int agc, char* argv[]){
     if (agc < 2) {
@@ -45,6 +48,9 @@ int main(int agc, char* argv[]){
         switch (execute_statement(statement, table)) {
             case EXECUTE_SUCCESS:
                 printf("Executed. \n");
+                break;
+            case EXECUTE_DUPLICATE_KEY:
+                printf("Error: Duplicate key. \n");
                 break;
             case EXECUTE_TABLE_FLL:
                 printf("Error: tabe full.\n");
@@ -173,11 +179,20 @@ ExecuteResult
 execute_insert(Statement statement, Table *table){
     void *node = get_page(table->pager, table->root_page_num);
     // 当前节点的单元是否已满
-    if (*leaf_node_num_cells(node) >= LEAF_NODE_MAX_CELLS) {
+    uint32_t num_cells = *leaf_node_num_cells(node);
+    if (num_cells >= LEAF_NODE_MAX_CELLS) {
         return EXECUTE_TABLE_FLL;
     }
     Row *row_to_insert = &(statement.row_to_insert);
-    Cursor *cursor = table_end(table);
+    uint32_t key_to_insert = row_to_insert->id; 
+    Cursor *cursor = table_find(table, key_to_insert);
+
+    if (cursor->cell_num < num_cells) {
+        uint32_t key_at_index = *leaf_node_key(node, cursor->cell_num);
+        if (key_at_index == key_to_insert) {
+            return EXECUTE_DUPLICATE_KEY;
+        }
+    }
 
     leaf_node_insert(cursor, row_to_insert->id, row_to_insert);
     free(cursor);
@@ -370,19 +385,18 @@ table_start(Table *table){
     return cursor;
 }
 
-// 将游标移动到该页的该插入单元格
+// 返回给定key的在表中的位置，如果该key存在返回位置，不存在，则返回应该插入的位置
 Cursor*
-table_end(Table *table){
-    Cursor *cursor = malloc(sizeof(Cursor));
-    cursor->table= table;
-    cursor->page_num = table->root_page_num;
+table_find(Table *table, uint32_t key){
+    uint32_t root_page_num = table->root_page_num;
+    void *root_node = get_page(table->pager, root_page_num);
 
-    void *root_node = get_page(table->pager, table->root_page_num);
-    uint32_t num_cells = *leaf_node_num_cells(root_node);
-    cursor->cell_num = num_cells;
-    cursor->end_of_table = true;
-
-    return cursor;
+    if (get_node_type(root_node) == NODE_LEAF) {
+        return leaf_node_find(table, root_page_num, key);
+    }else {
+        printf("Need to implement searching an internal node\n"); 
+        exit(EXECUTE_TABLE_FLL);
+    }
 }
 
 // 推进游标
@@ -402,6 +416,17 @@ cursor_value(Cursor *cursor){
     void *page = get_page(cursor->table->pager, cursor->page_num);
 
     return leaf_node_value(page, cursor->cell_num);
+}
+// 获得给定节点的类型
+NodeType
+get_node_type(void *node){
+    return *(uint8_t*)(node + NODE_TYPE_OFFSET);
+}
+
+// 设置给定节点的类型
+void
+set_node_type(void *node, NodeType type){
+   *(uint8_t *)(node + NODE_TYPE_OFFSET) = type;
 }
 
 // 根据叶节点的首地址，得到该节点的 num_cells 信息
@@ -431,6 +456,7 @@ leaf_node_value(void *node, uint32_t cell_num){
 // 初始化一个节点，即将该节点的num_cells值置为0
 void
 initialize_leaf_node(void *node){
+    set_node_type(node, NODE_LEAF); 
     *leaf_node_num_cells(node) = 0;
 }
 
@@ -455,6 +481,31 @@ leaf_node_insert(Cursor *cursor, uint32_t key, Row *value){
     (*leaf_node_num_cells(node))++;
     *leaf_node_key(node, cursor->cell_num) = key;
     serialize_row(value, leaf_node_value(node, cursor->cell_num));
+}
+
+Cursor*
+leaf_node_find(Table *table, uint32_t page_num, uint32_t key){
+    void *node = get_page(table->pager, page_num);
+    uint32_t num_cells = *leaf_node_num_cells(node);
+
+    Cursor *cursor = malloc(sizeof(Cursor));
+    cursor->page_num = page_num;
+    cursor->table = table;
+
+    // 二分查找
+    uint32_t left = 0, right = num_cells;
+    while (left < right) {
+        uint32_t index = (left + right) / 2;
+        uint32_t key_at_index = *leaf_node_key(node, index);
+        if (key > key_at_index) {
+            left = index + 1;
+        }else {
+            right = index;
+        }
+    }
+
+    cursor->cell_num = left;
+    return cursor;
 }
 
 void
