@@ -93,6 +93,21 @@ typedef struct{
 
 ## Part - 9 二分查找 和 重复键处理
 
-[原文part-8](https://cstack.github.io/db_tutorial/parts/part8.html)
+[原文part-9](https://cstack.github.io/db_tutorial/parts/part9.html)
 
 主要是将插入部分使用二分查找保证顺序
+
+## Part - 10 叶节点的分裂
+
+[原文part-10](https://cstack.github.io/db_tutorial/parts/part10.html)
+
+* 内部节点的内存分布
+![Our internal node format](https://cstack.github.io/db_tutorial/assets/images/internal-node-format.png)
+
+### 分裂算法
+
+>如果叶子节点上没有空间，我们将把驻留在那里的现有条目和新的条目（正在插入）分成两个相等的半部分：下半部分和上半部分。(我们分配一个新的叶子节点，并将上半部分移到新的节点上。
+
+### 创建一个新节点
+
+>让N成为根节点。首先分配两个节点，比如L和R，将N的下半部分移入L，上半部分移入R，现在N为空。在N中加入〈L，K，R〉，其中K是L中的最大键，第N页仍然是根。注意，树的深度增加了一个，但新的树仍然是高度平衡的，没有违反任何B+树的特性。
