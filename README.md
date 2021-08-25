@@ -111,3 +111,7 @@ typedef struct{
 ### 创建一个新节点
 
 >让N成为根节点。首先分配两个节点，比如L和R，将N的下半部分移入L，上半部分移入R，现在N为空。在N中加入〈L，K，R〉，其中K是L中的最大键，第N页仍然是根。注意，树的深度增加了一个，但新的树仍然是高度平衡的，没有违反任何B+树的特性。
+
+## Part - 11 递归搜索 B 树
+
+[原文part-11](https://cstack.github.io/db_tutorial/parts/part11.html)

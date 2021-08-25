@@ -129,7 +129,9 @@ uint32_t* leaf_node_value(void *node, uint32_t cell_num);
 void initialize_leaf_node(void *node);
 // 在当前游标下插入一条数据
 void leaf_node_insert(Cursor *cursor, uint32_t key, Row *value);
-Cursor* leaf_node_find(Table *table, uint32_t page_num, uint32_t key);
+Cursor *leaf_node_find(Table *table, uint32_t page_num, uint32_t key);
+Cursor *internal_node_find(Table *table, uint32_t page_num, uint32_t key);
+
 // 打印当前的常量
 void print_constants();
 void indent(uint32_t level);
