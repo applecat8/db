@@ -115,3 +115,11 @@ typedef struct{
 ## Part - 11 递归搜索 B 树
 
 [原文part-11](https://cstack.github.io/db_tutorial/parts/part11.html)
+
+## Part - 12 访问多级B树
+
+[原文part-12](https://cstack.github.io/db_tutorial/parts/part12.html)
+
+## Part - 13 分裂后更新父节点
+
+[原文part-13](https://cstack.github.io/db_tutorial/parts/part13.html)
